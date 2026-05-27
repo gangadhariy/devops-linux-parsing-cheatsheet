@@ -17,19 +17,18 @@ This guide explains:
 - common mistakes beginners make
 
 ---
-
 # 📌 Table of Contents
 
-1. Users & Switching Users
-2. Hostname Management
-3. Soft Links vs Hard Links
-4. Linux Signals
-5. Process Management
-6. Grep, Awk, Cut & Text Processing
-7. Variables & Command Substitution
-8. Kubernetes Real-World Examples
-9. Important DevOps Command Patterns
-10. Real Production Usage
+1. [Users & Switching Users](#1-users--switching-users)
+2. [Hostname Management](#2-hostname-management)
+3. [Soft Links vs Hard Links](#3-soft-links-vs-hard-links)
+4. [Linux Signals](#4-linux-signals)
+5. [Process Management](#5-process-management)
+6. [Grep, Awk, Cut & Text Processing](#6-grep-awk-cut--text-processing)
+7. [Variables & Command Substitution](#7-variables--command-substitution)
+8. [Kubernetes Real-World Examples](#8-kubernetes-real-world-examples)
+9. [Important DevOps Command Patterns](#9-important-devops-command-patterns)
+10. [Real Production Usage](#10-real-production-usage)
 
 ---
 
