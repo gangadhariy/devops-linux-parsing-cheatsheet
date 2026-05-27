@@ -1,305 +1,902 @@
-# Linux & DevOps Essentials Cheat Sheet 🚀
+# Linux & DevOps Essentials 🚀
 
-This repository contains practical Linux + DevOps commands used in real-world system administration, scripting, and Kubernetes environments.
+A practical Linux + DevOps reference guide for:
+
+- Linux administration
+- Shell scripting
+- Process management
+- Kubernetes troubleshooting
+- User & permission management
+- Signals & system operations
+
+This guide explains:
+
+- what commands actually do
+- where they are used in real DevOps
+- practical examples
+- common mistakes beginners make
 
 ---
 
 # 📌 Table of Contents
 
-- [1. Users & Switching Users](#1-users--switching-users)
-- [2. Username Management](#2-username-management)
-- [3. Hostname Management](#3-hostname-management)
-- [4. File Links (Soft & Hard Links)](#4-file-links-soft--hard-links)
-- [5. Linux Signals](#5-linux-signals)
-- [6. Process Management](#6-process-management)
-- [7. Grep, Awk, Cut Basics](#7-grep-awk-cut-basics)
-- [8. Kubernetes & DevOps Usage](#8-kubernetes--devops-usage)
+1. Users & Switching Users
+2. Hostname Management
+3. Soft Links vs Hard Links
+4. Linux Signals
+5. Process Management
+6. Grep, Awk, Cut & Text Processing
+7. Variables & Command Substitution
+8. Kubernetes Real-World Examples
+9. Important DevOps Command Patterns
+10. Real Production Usage
 
 ---
 
 # 1. Users & Switching Users
 
+Linux is a multi-user operating system.
+
+Every process runs as a specific user.
+
+Examples:
+- root
+- ubuntu
+- devops
+- nginx
+
+Understanding users is very important in DevOps because:
+- permissions depend on users
+- services run under users
+- Kubernetes containers run with users
+- CI/CD tools use service accounts
+
+---
+
 ## Check current user
+
 ```bash
 whoami
 ```
 
+Example output:
+
+```text
+ubuntu
+```
+
+This tells:
+> "Which user is currently running commands"
+
+---
+
 ## Switch user
+
 ```bash
 su - username
 ```
 
-## Switch to root
+Example:
+
+```bash
+su - devops
+```
+
+Explanation:
+- `su` = switch user
+- `-` loads the target user environment variables and home directory
+
+Without `-`, environment may not fully change.
+
+---
+
+## Become root user
+
 ```bash
 sudo -i
 ```
 
+Explanation:
+- Opens a root shell
+- Used for administrative operations
+
+Real DevOps usage:
+- editing system configs
+- restarting services
+- installing packages
+- troubleshooting servers
+
+---
+
 ## Check logged-in users
+
 ```bash
 who
 ```
 
----
+Example:
 
-# 2. Username Management
-
-## Change username
-```bash
-sudo usermod -l new_user old_user
+```text
+ubuntu pts/0
+devops pts/1
 ```
 
-## Change home directory with rename
-```bash
-sudo usermod -d /home/new_user -m new_user
-```
-
-⚠️ Do not run this while logged into the same user.
+Useful for:
+- server monitoring
+- checking active sessions
+- auditing access
 
 ---
 
-# 3. Hostname Management
+# 2. Hostname Management
+
+Hostname = machine/server name.
+
+Example:
+
+```text
+prod-web-01
+jenkins-server
+k8s-master
+```
+
+Hostnames help identify servers in:
+- monitoring tools
+- Kubernetes nodes
+- logs
+- SSH sessions
+
+---
 
 ## Check hostname
+
 ```bash
 hostname
 ```
 
-## Temporary change
+Example:
+
+```text
+sonarqube
+```
+
+---
+
+## Temporary hostname change
+
 ```bash
 sudo hostname new-host
 ```
 
-## Permanent change (recommended)
+Example:
+
 ```bash
-sudo hostnamectl set-hostname new-host
+sudo hostname devops-server
 ```
 
-## Verify
+Important:
+- resets after reboot
+
+---
+
+## Permanent hostname change
+
+```bash
+sudo hostnamectl set-hostname devops-prod
+```
+
+Explanation:
+- `hostnamectl` is modern Linux hostname management
+- works with systemd systems
+
+---
+
+## Verify hostname
+
 ```bash
 hostnamectl
 ```
 
+Shows:
+- hostname
+- OS
+- architecture
+- virtualization
+
+---
+
 ## Update hosts file
+
 ```bash
 sudo nano /etc/hosts
 ```
 
 Example:
+
+```text
+127.0.0.1 devops-prod
 ```
-127.0.0.1   new-host
-```
+
+Why?
+Linux sometimes resolves hostname through `/etc/hosts`.
+
+Without update:
+- sudo warnings may happen
+- hostname resolution issues may happen
 
 ---
 
-# 4. File Links (Soft & Hard Links)
+# 3. Soft Links vs Hard Links
 
-## 🔗 Soft Link (Shortcut)
+Links are references to files.
+
+Linux has:
+- Soft Links
+- Hard Links
+
+---
+
+# 🔗 Soft Link (Symbolic Link)
+
+Think:
+> Shortcut to a file
+
+Diagram:
+
+```text
+link.txt ---> original.txt
+```
+
+Create:
 
 ```bash
-ln -s file1.txt link1.txt
+ln -s original.txt link.txt
 ```
 
-- Points to file path
-- Breaks if original file is deleted
-- Can cross filesystems
-
----
-
-## 🔗 Hard Link (Same file)
+Example:
 
 ```bash
-ln file1.txt link2.txt
+echo "hello" > original.txt
+ln -s original.txt link.txt
+cat link.txt
 ```
 
-- Same inode (same file data)
-- Works even if original is deleted
-- Cannot cross filesystem
+Output:
+
+```text
+hello
+```
 
 ---
 
-## Check links
+## Important behavior
+
+If original file deleted:
+
 ```bash
-ls -l
+rm original.txt
+cat link.txt
+```
+
+Result:
+
+```text
+No such file or directory
+```
+
+Soft link breaks because it stores:
+- file path
+- not actual data
+
+---
+
+## Real DevOps usage
+
+Very common in deployments.
+
+Example:
+
+```text
+current -> app_v2
+```
+
+Application always points to:
+- latest release
+- without changing configs
+
+Used in:
+- Nginx deployments
+- CI/CD pipelines
+- blue-green deployments
+
+---
+
+# 🔗 Hard Link
+
+Think:
+> Another name for same actual file
+
+Diagram:
+
+```text
+file1.txt
+    |
+    +---- same inode ----+
+                          |
+                      file2.txt
+```
+
+Create:
+
+```bash
+ln file1.txt file2.txt
 ```
 
 ---
 
-# 5. Linux Signals
+## Example
 
-## SIGTERM (15) – graceful stop
+```bash
+echo "hello" > file1.txt
+ln file1.txt file2.txt
+```
+
+Both point to same file data.
+
+---
+
+## Important behavior
+
+Delete original:
+
+```bash
+rm file1.txt
+cat file2.txt
+```
+
+Still works.
+
+Why?
+Because actual data still exists.
+
+Hard links share:
+- same inode
+- same disk data
+
+---
+
+# Soft Link vs Hard Link Summary
+
+| Feature | Soft Link | Hard Link |
+|---|---|---|
+| Works like shortcut | Yes | No |
+| Same actual file | No | Yes |
+| Breaks if original deleted | Yes | No |
+| Cross filesystem | Yes | No |
+| Used heavily in deployments | Yes | Less |
+
+---
+
+# 4. Linux Signals
+
+Signals are messages sent to processes.
+
+Used for:
+- stopping apps
+- restarting services
+- debugging
+- graceful shutdown
+
+Very important in:
+- Kubernetes
+- Docker
+- systemd
+- CI/CD
+
+---
+
+# SIGTERM (15)
+
+Most important signal.
+
+Command:
+
 ```bash
 kill PID
+```
+
+or:
+
+```bash
 kill -15 PID
 ```
 
-## SIGKILL (9) – force kill
+Meaning:
+
+> "Please stop gracefully"
+
+Application gets time to:
+- save data
+- close DB connections
+- flush logs
+- cleanup
+
+---
+
+## Real Kubernetes flow
+
+When pod deleted:
+
+```text
+SIGTERM
+   ↓
+wait few seconds
+   ↓
+SIGKILL
+```
+
+That is why apps should handle SIGTERM properly.
+
+---
+
+# SIGKILL (9)
+
+Force kill.
+
+Command:
+
 ```bash
 kill -9 PID
 ```
 
-## SIGINT (2) – Ctrl + C
+Meaning:
+
+> "Stop immediately"
+
+Cannot be ignored.
+
+Danger:
+- no cleanup
+- possible corruption
+- unfinished writes
+
+Use only if process stuck.
+
+---
+
+# SIGINT (2)
+
+Generated by:
+
 ```text
 CTRL + C
 ```
 
-## SIGHUP (1) – reload
+Used to interrupt foreground process.
+
+Example:
+
 ```bash
-kill -1 PID
+ping google.com
 ```
 
-## SIGSTOP (19) – pause process
+Press:
+```text
+CTRL + C
+```
+
+Stops process.
+
+---
+
+# SIGHUP (1)
+
+Reload signal.
+
+Example:
+
+```bash
+kill -1 nginx_pid
+```
+
+Meaning:
+
+> "Reload configuration"
+
+Very common for:
+- nginx
+- apache
+- logging daemons
+
+---
+
+# SIGSTOP (19)
+
+Pause process.
+
 ```bash
 kill -19 PID
 ```
 
-## Resume process
+Resume:
+
 ```bash
 kill -18 PID
 ```
 
+Used in:
+- debugging
+- resource control
+
 ---
 
-# 6. Process Management
+# Signal Summary
+
+| Signal | Meaning |
+|---|---|
+| SIGTERM | graceful stop |
+| SIGKILL | force kill |
+| SIGINT | CTRL + C |
+| SIGHUP | reload config |
+| SIGSTOP | pause process |
+
+---
+
+# 5. Process Management
+
+Processes are running programs.
+
+Everything in Linux is process-driven.
+
+Examples:
+- nginx
+- docker
+- kubelet
+- sshd
+
+---
 
 ## List processes
+
 ```bash
 ps -ef
 ```
 
+Explanation:
+- `-e` = all processes
+- `-f` = full format
+
+Shows:
+- user
+- PID
+- parent PID
+- command
+
+---
+
 ## Find process
+
 ```bash
 pgrep nginx
 ```
 
-## Find full command match
+Returns PID.
+
+Better than:
+
+```bash
+ps -ef | grep nginx
+```
+
+because grep matches itself too.
+
+---
+
+## Match full command
+
 ```bash
 pgrep -f python
 ```
 
-## Show PID + name
-```bash
-pgrep -l java
-```
+`-f` searches full command line.
+
+Useful for:
+- script names
+- jar files
+- long commands
+
+---
 
 ## Kill process
+
 ```bash
 kill PID
+```
+
+Graceful stop.
+
+---
+
+## Force kill
+
+```bash
 kill -9 PID
 ```
 
+Force stop.
+
+Use carefully.
+
 ---
 
-# 7. Grep, Awk, Cut Basics
+# 6. Grep, Awk, Cut & Text Processing
 
-## grep (filter text)
-```bash
-grep "error" file.txt
-```
+This is the heart of DevOps shell scripting.
 
-## multiple patterns (OR)
-```bash
-grep -E "Running|Pending" file.txt
-```
+Real skill is:
 
-## multiple patterns (-e)
-```bash
-grep -e "Running" -e "Pending" file.txt
+```text
+output → filter → extract → automate
 ```
 
 ---
 
-## awk (columns)
+# grep
+
+Used to filter lines.
+
+Example:
+
+```bash
+grep "error" app.log
+```
+
+Finds lines containing:
+```text
+error
+```
+
+---
+
+## Multiple patterns
+
+```bash
+grep -E "Running|Pending"
+```
+
+Explanation:
+- `-E` enables extended regex
+- `|` means OR
+
+Matches:
+- Running
+- Pending
+
+---
+
+## Exclude pattern
+
+```bash
+grep -v Running
+```
+
+Shows everything except Running.
+
+Very common in Kubernetes troubleshooting.
+
+---
+
+# awk
+
+Used for columns.
+
+Example:
+
 ```bash
 kubectl get pods | awk '{print $1}'
 ```
 
+Extracts:
+- first column
+
+Useful because most Linux outputs are column-based.
+
 ---
 
-## cut (delimiter based)
+# cut
+
+Used for delimiter-based extraction.
+
+Example:
+
 ```bash
 cut -d: -f1 /etc/passwd
 ```
 
+Explanation:
+- `-d` delimiter
+- `-f` field
+
+Extracts usernames from passwd file.
+
 ---
 
-## store output in variable
+# 7. Variables & Command Substitution
+
+Very important in shell scripting.
+
+---
+
+## Store command output
+
 ```bash
-PODS=$(kubectl get pods --no-headers | awk '{print $1}')
+PODS=$(kubectl get pods)
+```
+
+Now variable contains command output.
+
+---
+
+## Print variable
+
+```bash
 echo "$PODS"
 ```
 
+Quotes preserve:
+- spaces
+- newlines
+
+Without quotes:
+shell collapses lines into spaces.
+
 ---
 
-# 8. Kubernetes & DevOps Usage
+# Example
 
-## Get pods
+```bash
+RUNNING=$(kubectl get po -A | grep Running | awk '{print $2}')
+```
+
+Now:
+- all running pod names stored
+
+---
+
+# 8. Kubernetes Real-World Examples
+
+---
+
+## Get all pods
+
 ```bash
 kubectl get pods -A
 ```
 
-## Filter running pods
-```bash
-kubectl get pods -A | grep Running
-```
-
-## Find failing pods
-```bash
-kubectl get pods -A | grep -v Running
-```
-
-## Count pods
-```bash
-kubectl get pods -A | wc -l
-```
-
-## Store pod list
-```bash
-RUNNING_PODS=$(kubectl get pods -A | grep Running | awk '{print $2}')
-```
-
-## Print properly (list format)
-```bash
-echo "$RUNNING_PODS"
-```
+`-A` means all namespaces.
 
 ---
 
-# 🔥 Real DevOps Pattern
+## Find unhealthy pods
 
 ```bash
-OUTPUT=$(command)
-FILTER=$(echo "$OUTPUT" | grep keyword)
-VALUE=$(echo "$FILTER" | awk '{print $1}')
+kubectl get pods -A | grep -Ev "Running|Completed"
 ```
 
-This pattern is used in:
-- CI/CD pipelines
+Very common production command.
+
+Shows:
+- CrashLoopBackOff
+- Pending
+- Error states
+
+---
+
+## Count unhealthy pods
+
+```bash
+kubectl get pods -A | grep -Ev "Running|Completed" | wc -l
+```
+
+Used in:
 - monitoring scripts
-- Kubernetes automation
-- log analysis
-- server health checks
+- alerting systems
 
 ---
 
-# 🚀 Important DevOps Rule
+## Restart bad pods automatically
 
-- `grep` → filter lines
-- `awk` → extract columns
-- `cut` → split fields
-- `sed` → modify text
-- `pgrep` → find processes
-- `kill` → control processes
-- `hostnamectl` → manage system identity
+```bash
+PODS=$(kubectl get po | grep CrashLoopBackOff | awk '{print $1}')
 
----
-
-# 💡 Final Insight
-
-Linux + DevOps scripting is not about memorizing commands.
-
-It is about:
-
-> "Take output → filter → extract → automate decisions"
-
-That is the real skill used in production systems.
+for pod in $PODS
+do
+   kubectl delete pod $pod
+done
 ```
+
+Very realistic DevOps troubleshooting script.
+
+---
+
+# 9. Important DevOps Command Patterns
+
+---
+
+# Pattern 1
+
+## Filter → Extract
+
+```bash
+kubectl get po | grep Running | awk '{print $1}'
+```
+
+---
+
+# Pattern 2
+
+## Count
+
+```bash
+kubectl get po | wc -l
+```
+
+---
+
+# Pattern 3
+
+## Store output
+
+```bash
+PODS=$(kubectl get po)
+```
+
+---
+
+# Pattern 4
+
+## Decision making
+
+```bash
+if [ $COUNT -gt 0 ]
+then
+   echo "Pods unhealthy"
+fi
+```
+
+---
+
+# 10. Real Production Usage
+
+These exact concepts are used in:
+
+- CI/CD pipelines
+- Jenkins jobs
+- Kubernetes automation
+- monitoring systems
+- alerting tools
+- server administration
+- deployment scripts
+- auto-healing systems
+
+---
+
+# Final Important Insight
+
+Linux + DevOps scripting is NOT about memorizing commands.
+
+The real skill is:
+
+```text
+Take command output
+        ↓
+Filter useful data
+        ↓
+Extract values
+        ↓
+Store in variables
+        ↓
+Automate decisions
+```
+
+That is the core of real-world DevOps automation.
